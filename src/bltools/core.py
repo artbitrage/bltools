@@ -6,7 +6,7 @@ from io import BytesIO
 import xmltodict
 from rich.progress import Progress, TaskID, SpinnerColumn, BarColumn, TextColumn
 from rich.console import Console
-from bltools.config import BLConfig
+from bltools.settings import Settings
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -66,7 +66,7 @@ async def process_page(
     manuscript_id: str,
     page_num: int,
     side: str,
-    config: BLConfig,
+    settings: Settings,
     target_dir: Path,
     progress: Progress,
     task_id: TaskID,
@@ -87,7 +87,7 @@ async def process_page(
 
     try:
         width, height, tile_size = await get_file_info(
-            client, config.baseurl, manuscript_id, filename
+            client, settings.baseurl, manuscript_id, filename
         )
     except Exception as e:
         # Already logged in get_file_info
@@ -99,7 +99,7 @@ async def process_page(
     cols = (height // tile_size) + 1
     zoom_level = 13
 
-    tile_url_template = f"{config.baseurl}{manuscript_id}_{filename.split('.')[0]}_files/{zoom_level}/{{}}_{{}}.jpg"
+    tile_url_template = f"{settings.baseurl}{manuscript_id}_{filename.split('.')[0]}_files/{zoom_level}/{{}}_{{}}.jpg"
 
     # Create blank image
     page_image = Image.new("RGB", (width, height))
@@ -144,13 +144,13 @@ async def process_page(
 
 
 async def download_manuscript(
-    manuscript_id: str, start: int, end: int, config: BLConfig, console: Console
+    manuscript_id: str, start: int, end: int, settings: Settings, console: Console
 ) -> None:
     """
     Main orchestrator for downloading a manuscript.
     """
     log = logger.bind(manuscript_id=manuscript_id)
-    target_dir = config.basedir / manuscript_id
+    target_dir = settings.basedir / manuscript_id
     target_dir.mkdir(parents=True, exist_ok=True)
 
     log.info(
@@ -189,7 +189,7 @@ async def download_manuscript(
                         manuscript_id,
                         p_num,
                         p_side,
-                        config,
+                        settings,
                         target_dir,
                         progress,
                         main_task,

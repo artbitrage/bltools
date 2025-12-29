@@ -2,7 +2,7 @@ import pytest
 import respx
 import httpx
 from bltools.core import get_file_info, download_manuscript
-from bltools.config import BLConfig
+from bltools.settings import Settings
 from rich.console import Console
 from PIL import Image
 import io
@@ -38,7 +38,7 @@ async def test_download_manuscript_success(respx_mock, tmp_path):
     # Setup mocks
     base_url = "http://test.com/"
     manuscript_id = "ms1"
-    config = BLConfig(baseurl=base_url, basedir=tmp_path)
+    settings = Settings(baseurl=base_url, basedir=tmp_path)
     console = Console(quiet=True)
 
     # 1. XML Metadata Mock
@@ -65,7 +65,7 @@ async def test_download_manuscript_success(respx_mock, tmp_path):
         return_value=httpx.Response(200, content=img_content)
     )
 
-    await download_manuscript(manuscript_id, 1, 1, config, console)
+    await download_manuscript(manuscript_id, 1, 1, settings, console)
 
     # Check if files were created
     target_dir = tmp_path / manuscript_id

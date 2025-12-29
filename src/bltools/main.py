@@ -2,7 +2,7 @@ import typer
 import asyncio
 from typing import Optional
 from pathlib import Path
-from bltools.config import BLConfig
+from bltools.settings import get_settings
 from bltools.core import download_manuscript
 from bltools.logging_config import configure_logging
 from rich.console import Console
@@ -16,8 +16,11 @@ def download(
     manuscript_id: str = typer.Argument(
         ..., help="The manuscript ID (e.g., add_ms_19352)"
     ),
-    config_path: Path = typer.Option(
-        Path("bl.conf"), "--config", "-c", help="Path to config file"
+    config_path: Optional[Path] = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="(Deprecated) Path to config file. Use .env instead.",
     ),
     output_dir: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Override output directory"
@@ -34,13 +37,18 @@ def download(
     """
     configure_logging(verbose=verbose)
 
-    config = BLConfig.load_from_file(config_path)
+    settings = get_settings()
+
+    if config_path:
+        console.print(
+            "[yellow]Warning: --config is deprecated. Please use .env file or environment variables.[/yellow]"
+        )
 
     # Overrides
     if output_dir:
-        config.basedir = output_dir
+        settings.basedir = output_dir
 
-    start, end = config.rangebegin, config.rangeend
+    start, end = settings.rangebegin, settings.rangeend
     if page_range:
         try:
             s, e = page_range.split("-")
@@ -52,7 +60,7 @@ def download(
     console.print(f"[bold green]Starting download for {manuscript_id}[/bold green]")
     console.print(f"Pages: {start} to {end}")
 
-    asyncio.run(download_manuscript(manuscript_id, start, end, config, console))
+    asyncio.run(download_manuscript(manuscript_id, start, end, settings, console))
 
 
 if __name__ == "__main__":

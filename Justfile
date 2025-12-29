@@ -16,6 +16,14 @@ setup:
 test:
     uv run pytest
 
+# Run tests with coverage
+test-cov:
+    uv run pytest --cov=bltools --cov-report=term-missing --cov-fail-under=90
+
+# Security audit
+audit:
+    uv run bandit -r src/
+
 # Lint and format code
 lint:
     uv run ruff check --fix .
