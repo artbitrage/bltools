@@ -1,11 +1,74 @@
+# Common Python ignores
 __pycache__/
-*.pyc
-.env
-.venv/
-dist/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing and coverage
+.cache
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.lcov
+.tox/
+.noseids
+nosetests.xml
+
+# Mypy and Ruff
 .mypy_cache/
 .ruff_cache/
-.pytest_cache/
+.dmypy.json
+dmypy.json
+
+# Tool results / Local logs
+results.txt
+mypy_results.txt
+mypy_results_utf8.txt
+mypy.txt
+mypy_final.txt
+bandit.txt
+pytest.txt
+docs.txt
+coverage_utf8.txt
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
 bl.conf
+site/
+downloads/
+
+# OS specific
+.DS_Store
+Thumbs.db

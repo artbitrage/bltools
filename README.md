@@ -1,14 +1,24 @@
 # bltools
 
-**Modern Async Downloader for British Library Manuscripts**
+**Modern Async Downloader# British Library Tools (bltools)
 
-`bltools` is a high-performance Python CLI tool designed to download manuscript images from the British Library's viewer. It utilizes `asyncio` and `httpx` for fast, parallel downloading and `Typer` for a robust command-line interface.
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://github.com/artbitrage/bltools/actions/workflows/ci.yml/badge.svg)](https://github.com/artbitrage/bltools/actions/workflows/ci.yml)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A modern, asynchronous CLI tool for downloading high-resolution manuscripts from the British Library. Now with full **IIIF (International Image Interoperability Framework)** support.
+
+## Features
+- **Modern Architecture**: Built with Typer, Pydantic (settings & models), and HTTPX.
+- **IIIF Support**: Support for modern IIIF Collection/Manifest URLs.
+- **Asynchronous**: Concurrent downloads with `asyncio` and `httpx`.
+- **Robust**: Automatic retries with exponential backoff via `tenacity`.
+- **Rich UI**: Interactive progress bars and beautiful logging via `rich` and `structlog`.
+- **12-Factor Compliant**: Configuration via environment variables.
 
 ## Installation
-
-Requires Python 3.9+.
-
-### Using uv (Recommended)
 
 ```bash
 uv tool install bltools

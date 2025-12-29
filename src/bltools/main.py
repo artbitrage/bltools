@@ -2,11 +2,11 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
+import structlog
 import typer
 from rich.console import Console
 
 from bltools.core import download_manuscript
-from bltools.logging_config import configure_logging
 from bltools.settings import get_settings
 
 app = typer.Typer(
@@ -24,54 +24,44 @@ def main() -> None:
 
 @app.command()
 def download(
-    manuscript_id: str = typer.Argument(
-        ..., help="The manuscript ID (e.g., add_ms_19352)"
+    input_str: str = typer.Argument(
+        ..., help="Manuscript ID (e.g., add_ms_19352) or IIIF Manifest URL"
     ),
-    config_path: Optional[Path] = typer.Option(
-        None,
-        "--config",
-        "-c",
-        help="(Deprecated) Path to config file. Use .env instead.",
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Directory to save downloads"
     ),
-    output_dir: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Override output directory"
+    range: Optional[str] = typer.Option(
+        None, "--range", help="Page range to download (e.g., 1-10)"
     ),
-    page_range: Optional[str] = typer.Option(
-        None, "--range", "-r", help="Page range (e.g., 1-10)"
-    ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose logging"
-    ),
+    verbose: bool = typer.Option(False, "--verbose", help="Enable debug logging"),
 ) -> None:
     """
     Download a manuscript from the British Library.
-    """
-    configure_logging(verbose=verbose)
 
+    Supports legacy Manuscript IDs (tiled downloads) and modern IIIF Manifest URLs
+    (direct high-resolution downloads).
+
+    Args:
+        input_str: Manuscript ID or IIIF Manifest URL.
+        output: Optional override for the output directory.
+        range: Optional page range (e.g., 1-10).
+        verbose: Enable debug-level logging.
+    """
     settings = get_settings()
 
-    if config_path:
-        console.print(
-            "[yellow]Warning: --config is deprecated. Please use .env file or environment variables.[/yellow]"
-        )
+    if verbose:
+        structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(20))
 
-    # Overrides
-    if output_dir:
-        settings.basedir = output_dir
+    if output:
+        settings.basedir = output
 
-    start, end = settings.rangebegin, settings.rangeend
-    if page_range:
-        try:
-            s, e = page_range.split("-")
-            start, end = int(s), int(e)
-        except ValueError:
-            console.print("[red]Invalid range format. Use start-end (e.g., 1-10)[/red]")
-            raise typer.Exit(code=1) from None
-
-    console.print(f"[bold green]Starting download for {manuscript_id}[/bold green]")
-    console.print(f"Pages: {start} to {end}")
-
-    asyncio.run(download_manuscript(manuscript_id, start, end, settings, console))
+    try:
+        asyncio.run(download_manuscript(input_str, settings, console, range))
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        if verbose:
+            raise e
+        raise typer.Exit(code=1) from None
 
 
 if __name__ == "__main__":
