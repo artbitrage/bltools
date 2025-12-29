@@ -9,8 +9,18 @@ from bltools.core import download_manuscript
 from bltools.logging_config import configure_logging
 from bltools.settings import get_settings
 
-app = typer.Typer(help="British Library Manuscript Downloader")
+app = typer.Typer(
+    help="British Library Manuscript Downloader",
+    no_args_is_help=True,
+    invoke_without_command=True,
+)
 console = Console()
+
+
+@app.callback()
+def main() -> None:
+    """British Library Manuscript Downloader CLI."""
+    pass
 
 
 @app.command()
