@@ -1,11 +1,13 @@
-import typer
 import asyncio
-from typing import Optional
 from pathlib import Path
-from bltools.settings import get_settings
+from typing import Optional
+
+import typer
+from rich.console import Console
+
 from bltools.core import download_manuscript
 from bltools.logging_config import configure_logging
-from rich.console import Console
+from bltools.settings import get_settings
 
 app = typer.Typer(help="British Library Manuscript Downloader")
 console = Console()
@@ -55,7 +57,7 @@ def download(
             start, end = int(s), int(e)
         except ValueError:
             console.print("[red]Invalid range format. Use start-end (e.g., 1-10)[/red]")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
     console.print(f"[bold green]Starting download for {manuscript_id}[/bold green]")
     console.print(f"Pages: {start} to {end}")

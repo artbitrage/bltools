@@ -1,13 +1,14 @@
-import pytest
-import respx
+import asyncio
+import io
+
 import httpx
-from bltools.core import get_file_info, download_manuscript, download_tile, process_page
-from bltools.settings import Settings
+import pytest
+from PIL import Image
 from rich.console import Console
 from rich.progress import Progress
-from PIL import Image
-import io
-import asyncio
+
+from bltools.core import download_manuscript, download_tile, get_file_info, process_page
+from bltools.settings import Settings
 
 
 @pytest.mark.asyncio

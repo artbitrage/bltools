@@ -1,7 +1,8 @@
-import structlog
-import sys
 import logging
+import sys
 from typing import Any
+
+import structlog
 
 
 def configure_logging(verbose: bool = False) -> None:

@@ -1,5 +1,6 @@
-from bltools.main import app
 from typer.testing import CliRunner
+
+from bltools.main import app
 from bltools.settings import Settings
 
 runner = CliRunner()

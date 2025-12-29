@@ -1,19 +1,21 @@
-import httpx
 import asyncio
-from pathlib import Path
-from PIL import Image
 from io import BytesIO
+from pathlib import Path
+
+import httpx
+import structlog
 import xmltodict
-from rich.progress import Progress, TaskID, SpinnerColumn, BarColumn, TextColumn
+from PIL import Image
 from rich.console import Console
-from bltools.settings import Settings
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
-import structlog
+
+from bltools.settings import Settings
 
 logger = structlog.get_logger()
 
@@ -40,7 +42,7 @@ async def get_file_info(
         return w, h, t
     except (KeyError, ValueError) as e:
         log.error("metadata_parse_failed", error=str(e))
-        raise ValueError(f"Failed to parse XML for {filename}: {e}")
+        raise ValueError(f"Failed to parse XML for {filename}: {e}") from e
 
 
 @retry(
@@ -123,6 +125,7 @@ async def process_page(
             failed_tiles += 1
             continue
 
+        assert isinstance(res, tuple)
         r, c, content = res
         try:
             tile = Image.open(BytesIO(content))
