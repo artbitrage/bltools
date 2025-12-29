@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 from io import BytesIO
 import xmltodict
-from rich.progress import Progress, TaskID
+from rich.progress import Progress, TaskID, SpinnerColumn, BarColumn, TextColumn
 from rich.console import Console
 from bltools.config import BLConfig
 from tenacity import (
@@ -13,6 +13,9 @@ from tenacity import (
     wait_exponential,
     retry_if_exception_type,
 )
+import structlog
+
+logger = structlog.get_logger()
 
 
 async def get_file_info(
@@ -20,21 +23,11 @@ async def get_file_info(
 ) -> tuple[int, int, int]:
     """
     Fetch the XML metadata for a page to determine dimensions and tile size.
-
-    Args:
-        client: The httpx AsyncClient to use.
-        base_url: The base URL for the British Library manuscript viewer.
-        manuscript_id: The ID of the manuscript.
-        filename: The filename (e.g., 'f001r.jpg').
-
-    Returns:
-        A tuple containing (width, height, tile_size).
-
-    Raises:
-        httpx.HTTPStatusError: If the request fails.
-        ValueError: If the XML cannot be parsed.
     """
     info_url = f"{base_url}{manuscript_id}_{filename.split('.')[0]}.xml"
+    log = logger.bind(manuscript_id=manuscript_id, filename=filename, url=info_url)
+
+    log.debug("fetching_metadata")
     response = await client.get(info_url)
     response.raise_for_status()
 
@@ -43,8 +36,10 @@ async def get_file_info(
         w = int(info_dict["Image"]["Size"]["@Width"]) - 1
         h = int(info_dict["Image"]["Size"]["@Height"]) - 1
         t = int(info_dict["Image"]["@TileSize"])
+        log.debug("metadata_parsed", width=w, height=h, tile_size=t)
         return w, h, t
     except (KeyError, ValueError) as e:
+        log.error("metadata_parse_failed", error=str(e))
         raise ValueError(f"Failed to parse XML for {filename}: {e}")
 
 
@@ -58,18 +53,9 @@ async def download_tile(
 ) -> tuple[int, int, bytes]:
     """
     Download a single tile with retries.
-
-    Args:
-        client: The httpx AsyncClient.
-        url: The URL of the tile.
-        row: Row index of the tile.
-        col: Column index of the tile.
-        sem: Semaphore to limit concurrency.
-
-    Returns:
-        Tuple of (row, col, content bytes).
     """
     async with sem:
+        # We don't log every tile download success to avoid spam, only failures/retries via tenacity if configured
         response = await client.get(url)
         response.raise_for_status()
         return row, col, response.content
@@ -90,11 +76,13 @@ async def process_page(
     """
     filename = f"f{page_num:03d}{side}.jpg"
     file_path = target_dir / filename
+    log = logger.bind(manuscript_id=manuscript_id, filename=filename)
 
     if file_path.exists():
         progress.update(
             task_id, advance=1, description=f"[dim]Skipped {filename}[/dim]"
         )
+        log.info("page_skipped_exists")
         return
 
     try:
@@ -102,6 +90,7 @@ async def process_page(
             client, config.baseurl, manuscript_id, filename
         )
     except Exception as e:
+        # Already logged in get_file_info
         progress.console.print(f"[red]Error fetching info for {filename}: {e}[/red]")
         progress.update(task_id, advance=1)
         return
@@ -119,6 +108,7 @@ async def process_page(
     sem = asyncio.Semaphore(10)  # Concurrency limit for tiles per page
     tasks = []
 
+    log.debug("starting_tile_downloads", total_tiles=rows * cols)
     for r in range(rows):
         for c in range(cols):
             url = tile_url_template.format(r, c)
@@ -126,13 +116,11 @@ async def process_page(
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
+    failed_tiles = 0
     for res in results:
         if isinstance(res, Exception):
-            # If a tile completely failed after retries, we log it and continue.
-            # Ideally we would mark the page as failed, but to match original behavior we stitch what we have.
-            progress.console.print(
-                f"[yellow]Warning: A tile failed for {filename}: {res}[/yellow]"
-            )
+            log.warning("tile_download_failed", error=str(res))
+            failed_tiles += 1
             continue
 
         r, c, content = res
@@ -141,9 +129,13 @@ async def process_page(
             box = (r * tile_size, c * tile_size)
             page_image.paste(tile, box)
         except Exception as e:
-            progress.console.print(
-                f"[red]Error processing tile for {filename}: {e}[/red]"
-            )
+            log.error("tile_processing_failed", error=str(e))
+            failed_tiles += 1
+
+    if failed_tiles > 0:
+        log.warning("page_downloaded_with_errors", failed_tiles=failed_tiles)
+    else:
+        log.info("page_downloaded_success")
 
     page_image.save(file_path)
     progress.update(
@@ -157,8 +149,16 @@ async def download_manuscript(
     """
     Main orchestrator for downloading a manuscript.
     """
+    log = logger.bind(manuscript_id=manuscript_id)
     target_dir = config.basedir / manuscript_id
     target_dir.mkdir(parents=True, exist_ok=True)
+
+    log.info(
+        "starting_manuscript_download",
+        start_page=start,
+        end_page=end,
+        target_dir=str(target_dir),
+    )
 
     pages = []
     for i in range(start, end + 1):
@@ -197,3 +197,5 @@ async def download_manuscript(
                     for p_num, p_side in chunk
                 ]
                 await asyncio.gather(*batch_tasks)
+
+    log.info("manuscript_download_complete")

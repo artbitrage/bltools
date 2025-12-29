@@ -1,17 +1,10 @@
 import typer
 import asyncio
 from typing import Optional
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import (
-        Annotated,
-    )  # Support older python if needed, though we set >=3.9
-
 from pathlib import Path
 from bltools.config import BLConfig
 from bltools.core import download_manuscript
+from bltools.logging_config import configure_logging
 from rich.console import Console
 
 app = typer.Typer(help="British Library Manuscript Downloader")
@@ -20,22 +13,27 @@ console = Console()
 
 @app.command()
 def download(
-    manuscript_id: Annotated[
-        str, typer.Argument(help="The manuscript ID (e.g., add_ms_19352)")
-    ],
-    config_path: Annotated[
-        Path, typer.Option("--config", "-c", help="Path to config file")
-    ] = Path("bl.conf"),
-    output_dir: Annotated[
-        Optional[Path], typer.Option("--output", "-o", help="Override output directory")
-    ] = None,
-    page_range: Annotated[
-        Optional[str], typer.Option("--range", "-r", help="Page range (e.g., 1-10)")
-    ] = None,
+    manuscript_id: str = typer.Argument(
+        ..., help="The manuscript ID (e.g., add_ms_19352)"
+    ),
+    config_path: Path = typer.Option(
+        Path("bl.conf"), "--config", "-c", help="Path to config file"
+    ),
+    output_dir: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Override output directory"
+    ),
+    page_range: Optional[str] = typer.Option(
+        None, "--range", "-r", help="Page range (e.g., 1-10)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
 ) -> None:
     """
     Download a manuscript from the British Library.
     """
+    configure_logging(verbose=verbose)
+
     config = BLConfig.load_from_file(config_path)
 
     # Overrides
