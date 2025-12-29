@@ -1,33 +1,72 @@
 # bltools
-This simple Python scripts can download all or a range of pages of a manuscript from British Library's website. 
-BL allows you to view manuscripts on its website but there is no download feature and if you need to study a manuscript carefully, you'll find the website quite frustrating.
-Dezoomify by "Ophir LOJKINE" (https://github.com/lovasoa/dezoomify) is also a great tool to download single pages from BL and some other online resources but I needed a simple and straightforward tool to get a manuscript name and download all pages
 
-# Installation
+**Modern Async Downloader for British Library Manuscripts**
 
-To run the script you'd need python3.x and following libraries:
+`bltools` is a high-performance Python CLI tool designed to download manuscript images from the British Library's viewer. It utilizes `asyncio` and `httpx` for fast, parallel downloading and `Typer` for a robust command-line interface.
 
-* Pillow
-* requests
-* PyYAML
-* xmltodict
+## Installation
 
-Normally installing them is as easy as running:
-```
-pip install module_name
-```
+Requires Python 3.9+.
 
-# Download a manuscript
+### Using uv (Recommended)
 
-Check the manuscript ID in the British Library website. Each digitised manuscript has a "Display page" with information about it. The URL to this page is something like: [http://www.bl.uk/manuscripts/FullDisplay.aspx?ref=Add_MS_19352](http://www.bl.uk/manuscripts/FullDisplay.aspx?ref=Add_MS_19352). The ID we need is the part after ref=, in this case add\_ms\_19352 (case doesn't matter).
-
-To get this manuscript just edit the config file, set the page range you want to download and run:
-```
-python directdl.py add_ms_19352
+```bash
+uv tool install bltools
+# or run directly
+uv run bltools --help
 ```
 
-# TODO
+### Using pip
 
-* Auto discover next page to download (have a downloand all option)
-* Use alternative faster web download method
-* Generate a report at the end
+```bash
+pip install .
+```
+
+## Usage
+
+The basic command to download a manuscript:
+
+```bash
+bltools download add_ms_19352
+```
+
+### Options
+
+- `--config, -c`: Path to custom config file (default: `bl.conf`)
+- `--output, -o`: Override output directory (default: current directory or config setting)
+- `--range, -r`: Specify a page range (e.g., `1-10`)
+
+### Examples
+
+**Download pages 1 to 5 of a manuscript:**
+
+```bash
+bltools download add_ms_19352 --range 1-5
+```
+
+**Save to a specific directory:**
+
+```bash
+bltools download add_ms_19352 --output ./downloads
+```
+
+## Configuration
+
+You can use a `bl.conf` YAML file to set defaults:
+
+```yaml
+sleeptime: 0.0
+basedir: "."
+rangebegin: 1
+rangeend: 259
+baseurl: "http://www.bl.uk/manuscripts/Proxy.ashx?view="
+```
+
+## Development
+
+This project uses `hatchling` and `uv`.
+
+1.  **Clone the repo**
+2.  **Install dependencies**: `uv sync`
+3.  **Run tests**: `uv run pytest`
+4.  **Lint**: `uv run ruff check .`
