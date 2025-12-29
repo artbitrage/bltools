@@ -9,7 +9,10 @@ from bltools.core import download_manuscript
 from bltools.logging_config import configure_logging
 from bltools.settings import get_settings
 
-app = typer.Typer(help="British Library Manuscript Downloader")
+app = typer.Typer(
+    help="British Library Manuscript Downloader",
+    no_args_is_help=True,
+)
 console = Console()
 
 
